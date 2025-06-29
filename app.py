@@ -1,53 +1,63 @@
-# streamlit_app.py
 import streamlit as st
 import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
-import os
 
-st.title("🐱 Cat vs Dog Classifier")
+# Set judul halaman
+st.set_page_config(page_title="Cats vs Dogs Classifier", page_icon="🐾")
 
-# Debug: tampilkan struktur file di root agar kita tahu di mana kita berada
-st.sidebar.header("Debug Info")
-st.sidebar.write("Current working dir:", os.getcwd())
-st.sidebar.write("Root files:", os.listdir())
+# Judul aplikasi
+st.title("🐱 Cats vs Dogs Classifier 🐶")
+st.markdown("## Meow or Woof? Upload an image to find out!")
 
-MODEL_DIR = "catdog_mobilenetv2_saved"
-
-# Pastikan folder model ada
-if not os.path.isdir(MODEL_DIR):
-    st.error(f"❌ Folder model `{MODEL_DIR}` tidak ditemukan di root!\n\n" +
-             "Silakan pastikan:\n"
-             "1. Anda telah push folder `catdog_mobilenetv2_saved/` ke GitHub,\n"
-             "2. Tidak ada di `.gitignore`,\n"
-             "3. Path sesuai (cek daftar file di sidebar).")
-    st.stop()
-
+# Load model
 @st.cache_resource
 def load_model():
-    # load SavedModel dari folder
-    return tf.keras.models.load_model(MODEL_DIR)
+    return tf.keras.models.load_model('model/cats_dogs_mobilenetv2.h5')
 
-# Muat model
 model = load_model()
 
-st.write("✅ Model berhasil dimuat!")
+# Upload gambar
+uploaded_file = st.file_uploader(
+    "Choose an image of a cat or dog...",
+    type=["jpg", "jpeg", "png"]
+)
 
-st.write("Upload gambar dan model akan mengklasifikasikan sebagai Kucing atau Anjing.")
-
-file = st.file_uploader("Unggah gambar", type=["jpg", "jpeg", "png"])
-if file:
-    image = Image.open(file).convert("RGB")
-    st.image(image, caption="Gambar yang diunggah", use_column_width=True)
-
+if uploaded_file is not None:
+    # Tampilkan gambar
+    img = Image.open(uploaded_file)
+    st.image(img, caption='Uploaded Image', width=300)
+    
     # Preprocessing
-    img = image.resize((128, 128))
-    img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
-
+    img = img.resize((224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0) / 255.0
+    
     # Prediksi
-    pred = model.predict(img_array)[0][0]
-    label = "🐶 Anjing" if pred > 0.5 else "🐱 Kucing"
-    confidence = pred if pred > 0.5 else 1 - pred
+    prediction = model.predict(img_array)
+    result = "DOG 🐶" if prediction[0][0] > 0.5 else "CAT 😸"
+    confidence = prediction[0][0] if prediction[0][0] > 0.5 else 1 - prediction[0][0]
+    
+    # Tampilkan hasil
+    st.subheader("Prediction Result:")
+    st.success(f"This is a **{result}**!")
+    st.info(f"Confidence: **{confidence:.2%}**")
+    
+    # Tampilkan penjelasan
+    if result == "DOG 🐶":
+        st.markdown("### Woof! Woof! 🐕")
+        st.write("Characteristics detected:")
+        st.write("- Canine facial features")
+        st.write("- Dog ear structure")
+        st.write("- Typical dog posture")
+    else:
+        st.markdown("### Meow! 😻")
+        st.write("Characteristics detected:")
+        st.write("- Feline eye shape")
+        st.write("- Pointed cat ears")
+        st.write("- Typical cat body posture")
 
-    st.markdown(f"### Prediksi: **{label}**")
-    st.write(f"Tingkat keyakinan: `{confidence:.2%}`")
+# Footer
+st.markdown("---")
