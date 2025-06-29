@@ -1,20 +1,40 @@
+# streamlit_app.py
 import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import os
 
-# Cache model agar tidak reload setiap rerun
+st.title("🐱 Cat vs Dog Classifier")
+
+# Debug: tampilkan struktur file di root agar kita tahu di mana kita berada
+st.sidebar.header("Debug Info")
+st.sidebar.write("Current working dir:", os.getcwd())
+st.sidebar.write("Root files:", os.listdir())
+
+MODEL_DIR = "catdog_mobilenetv2_saved"
+
+# Pastikan folder model ada
+if not os.path.isdir(MODEL_DIR):
+    st.error(f"❌ Folder model `{MODEL_DIR}` tidak ditemukan di root!\n\n" +
+             "Silakan pastikan:\n"
+             "1. Anda telah push folder `catdog_mobilenetv2_saved/` ke GitHub,\n"
+             "2. Tidak ada di `.gitignore`,\n"
+             "3. Path sesuai (cek daftar file di sidebar).")
+    st.stop()
+
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("catdog_mobilenetv2_saved")
+    # load SavedModel dari folder
+    return tf.keras.models.load_model(MODEL_DIR)
 
+# Muat model
 model = load_model()
 
-# UI
-st.title("🐱 Cat vs Dog Classifier")
-st.write("Upload gambar dan model MobileNetV2 akan mengklasifikasikan sebagai **Kucing** atau **Anjing**.")
+st.write("✅ Model berhasil dimuat!")
 
-# Upload gambar
+st.write("Upload gambar dan model akan mengklasifikasikan sebagai Kucing atau Anjing.")
+
 file = st.file_uploader("Unggah gambar", type=["jpg", "jpeg", "png"])
 if file:
     image = Image.open(file).convert("RGB")
